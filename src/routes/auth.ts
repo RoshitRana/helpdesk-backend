@@ -29,12 +29,13 @@ authRouter.post('/signup', async (req: Request, res: Response): Promise<void> =>
 
     res.status(201).json({ message: "User created" });
   } catch (e: any) {
-    if (e.code === "P2002") {
-      res.status(400).json({ message: "Email already exists" });
-      return;
-    }
-    res.status(500).json({ message: "Internal server error" });
+  console.log("Signup error:", e);
+  if (e.code === "P2002") {
+    res.status(400).json({ message: "Email already exists" });
+    return;
   }
+  res.status(500).json({ message: "Internal server error" });
+}
 });
 
 // POST /signin
@@ -55,14 +56,16 @@ authRouter.post('/signin', async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // In /signin route
     if (!user.password) {
-        res.status(400).json({ message: "Password not set for this user" });
-        return;
+      res.status(400).json({ message: "Password not set for this user" });
+      return;
     }
 
     const passwordMatch = await bcrypt.compare(parsedData.data.password, user.password);
-
+    if (!passwordMatch) {
+      res.status(401).json({ message: "Incorrect password" });
+      return;
+    }
 
     const token = jwt.sign(
       { userId: user.id, name: user.name },

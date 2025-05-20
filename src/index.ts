@@ -10,10 +10,12 @@ import feedbackRouter from "./routes/feedbackRoutes";
 import chatRouter from "./routes/chat";
 import "./webSocket";
 import googleAuthRouter from './routes/googleAuth';
+import path from "path";
 
 dotenv.config();
 
 const app = express();
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Middlewares
 app.use(cors({
@@ -32,6 +34,7 @@ app.use("/api/technician", technicianRouter);
 app.use("/api/feedback", feedbackRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/googleAuth", googleAuthRouter);
+
 
 const PORT = process.env.PORT || 3000;
 

@@ -62,6 +62,7 @@ model User {
   phone String?
   bio String?
   avatar String?
+  profilePicture String?
   department String?
   location String?
   createdAt DateTime @default(now())
@@ -71,7 +72,7 @@ model User {
   notifications Notification[]
   feedback Feedback[]
   sentMessages ChatMessage[] @relation("SentMessages")
-  googleId  String?  @unique
+  googleId  String? 
   verified  Boolean  @default(false)
 }
 

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 
 const prisma = new PrismaClient();
@@ -9,6 +9,7 @@ interface GoogleTokenResponse {
   sub: string;
   email: string;
   name: string;
+  picture?: string;
   email_verified?: boolean;
 }
 
@@ -19,6 +20,7 @@ interface AuthResponse {
     name: string;
     email: string;
     role: string;
+    profilePicture?: string; 
   };
 }
 
@@ -36,19 +38,19 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
   }
 
   try {
-    // Verify Google token
+    // Verify the Google ID token
     const response = await axios.get<GoogleTokenResponse>(
       `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${googleToken}`
     );
 
-    const { sub: googleId, email, name, email_verified } = response.data;
+    const { sub: googleId, email, name, email_verified, picture } = response.data;
 
     if (!email || !name) {
       res.status(400).json({ message: "Invalid Google token data" });
       return;
     }
 
-    // Create or update user with authProvider
+    // Upsert user in DB
     const user = await prisma.user.upsert({
       where: { email },
       create: {
@@ -58,13 +60,13 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
         verified: email_verified === true,
         role: "USER",
         password: undefined,
-    
+        profilePicture: picture,
       },
       update: {
         name,
         googleId: googleId || undefined,
         verified: email_verified === true,
-    
+        profilePicture: picture,
       },
     });
 
@@ -82,6 +84,7 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
         name: user.name,
         email: user.email,
         role: user.role,
+        // profilePicture: user.profilePicture, // Uncomment if desired
       },
     };
 
@@ -97,29 +100,5 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
     } else {
       res.status(500).json({ message: "Internal server error" });
     }
-  }
-};
-
-export const getAuthUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-      },
-    });
-
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    res.status(200).json(user);
-  } catch (error) {
-    console.error("Error fetching user:", error);
-    res.status(500).json({ message: "Internal server error" });
   }
 };
